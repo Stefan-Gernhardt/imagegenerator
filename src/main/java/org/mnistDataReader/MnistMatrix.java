@@ -39,4 +39,18 @@ public class MnistMatrix {
         return nCols;
     }
 
+    public void print() {
+        System.out.println("----------------------------");
+        System.out.println("MnistMatrix");
+        for(int r=0; r<nRows; r++) {
+            for(int c=0; c<nCols; c++) {
+                int value = data[r][c] > 0 ? 1 : 0;
+
+                System.out.print("" + value);
+            }
+            System.out.println();
+        }
+        System.out.println("label: " + label);
+
+    }
 }
