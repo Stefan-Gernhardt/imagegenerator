@@ -25,6 +25,7 @@ import java.util.List;
 // https://medium.com/mlearning-ai/neural-networks-getting-started-with-eclipse-deeplearning4j-897f3662832b
 
 public class MnistSimple {
+    public static final int IMG_SIZE = 28;
 
     public static final String MNIST_SIMPLE_FILE_NAME = "MnistSimple";
 
@@ -57,7 +58,7 @@ public class MnistSimple {
         int detectionCounter = 0;
         double sum = 0.0;
         for(int i = 0; i< mnistValidationMatrix.length; i++) {
-            INDArray evalInputRow = Nd4j.zeros(1, 28*28);
+            INDArray evalInputRow = Nd4j.zeros(1, IMG_SIZE*IMG_SIZE);
             evalInputRow.putRow(0, validationInputs.getRow(i));
             EvalResult evalResult = askModel(evalInputRow);
 
@@ -97,7 +98,7 @@ public class MnistSimple {
                         printEval(i);
                     }
 
-                    INDArray evalInputRow = Nd4j.zeros(1, 28*28);
+                    INDArray evalInputRow = Nd4j.zeros(1, IMG_SIZE*IMG_SIZE);
                     evalInputRow.putRow(0, trainingInputs.getRow(i));
                     EvalResult evalResult = askModel(evalInputRow);
 
@@ -121,7 +122,7 @@ public class MnistSimple {
 
 
     private void printEval(int i) {
-        INDArray evalInput = Nd4j.zeros(1, 28*28);
+        INDArray evalInput = Nd4j.zeros(1, IMG_SIZE*IMG_SIZE);
         evalInput.putRow(0, trainingInputs.getRow(i));
         List<INDArray> outList = model.feedForward(evalInput, false);
         INDArray out = outList.get(2);
@@ -136,7 +137,7 @@ public class MnistSimple {
         System.out.println("INDArray");
         for(int row=0; row<mnistTrainMatrix[0].getNumberOfRows(); row++) {
             for (int col = 0; col < mnistTrainMatrix[0].getNumberOfColumns(); col++) {
-                int value = trainingInputs.getDouble(i, row*28 + col) > 0 ? 1 : 0;
+                int value = trainingInputs.getDouble(i, row*IMG_SIZE + col) > 0 ? 1 : 0;
                 System.out.print("" + value);
             }
             System.out.println();
@@ -175,7 +176,7 @@ public class MnistSimple {
                 .updater(Updater.ADAM)
                 .list()
                 .layer(0, new DenseLayer.Builder()
-                        .nIn(28 * 28)
+                        .nIn(IMG_SIZE * IMG_SIZE)
                         .nOut(100)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
@@ -207,14 +208,14 @@ public class MnistSimple {
         System.out.println("number of train images: " + mnistTrainMatrix.length);
 
 
-        trainingInputs = Nd4j.zeros(mnistTrainMatrix.length, 28*28);
+        trainingInputs = Nd4j.zeros(mnistTrainMatrix.length, IMG_SIZE*IMG_SIZE);
         trainingOutputs = Nd4j.zeros(mnistTrainMatrix.length, 10);
 
         for(int i=0; i<mnistTrainMatrix.length; i++) {
-            for(int r=0; r<28; r++) {
-                for (int c = 0; c < 28; c++) {
+            for(int r=0; r<IMG_SIZE; r++) {
+                for (int c = 0; c < IMG_SIZE; c++) {
                     double d = mnistTrainMatrix[i].getValue(r, c) / 255.0;
-                    trainingInputs.put(i, r * 28 + c, d);
+                    trainingInputs.put(i, r * IMG_SIZE + c, d);
                 }
             }
         }
@@ -224,14 +225,14 @@ public class MnistSimple {
         }
 
 
-        validationInputs = Nd4j.zeros(mnistValidationMatrix.length, 28*28);
+        validationInputs = Nd4j.zeros(mnistValidationMatrix.length, IMG_SIZE*IMG_SIZE);
         validationOutputs = Nd4j.zeros(mnistValidationMatrix.length, 10);
 
         for(int i = 0; i< mnistValidationMatrix.length; i++) {
-            for(int r=0; r<28; r++) {
-                for (int c = 0; c < 28; c++) {
+            for(int r=0; r<IMG_SIZE; r++) {
+                for (int c = 0; c < IMG_SIZE; c++) {
                     double d = mnistValidationMatrix[i].getValue(r, c) / 255.0;
-                    validationInputs.put(i, r * 28 + c, d);
+                    validationInputs.put(i, r * IMG_SIZE + c, d);
                 }
             }
         }
