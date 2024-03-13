@@ -1,6 +1,8 @@
 package org.ui;
 
 
+import main.GenerateImage;
+
 import java.awt.BasicStroke;
 import java.awt.Canvas;
 import java.awt.Color;
@@ -35,7 +37,7 @@ public class GameUI extends Canvas  {
 
 		if(withUI) {
 			canvasSetup();
-			windowUI = new WindowUI("Machine Learning Pong", this);
+			windowUI = new WindowUI("Image Generation", this);
 		}
 
 		this.addKeyListener(new KeyInput());
@@ -53,20 +55,15 @@ public class GameUI extends Canvas  {
 	public void start() {
 		gameState = Running;
 	}
-	
-	
+
 
 	private void canvasSetup() {
-		// this.setPreferredSize(new Dimension(getw(), geth()));
-		// this.setMaximumSize(new Dimension(WIDTH, HEIGHT));
-
 		this.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 		this.setMinimumSize(new Dimension(WIDTH, HEIGHT));
 	}
 
 
-
-	public void draw() {
+	public void draw(GenerateImage generateImage) {
 		// Initialize drawing tools first before drawing
 
 		BufferStrategy buffer = this.getBufferStrategy(); // extract buffer so we can use them
@@ -89,7 +86,7 @@ public class GameUI extends Canvas  {
 		Graphics g = buffer.getDrawGraphics(); // extract drawing tool from the buffers
 
 		drawBackground(g);
-		drawImageArray(g);
+		drawImageArray(g, generateImage);
 
 		g.dispose();
 		buffer.show();
@@ -102,22 +99,12 @@ public class GameUI extends Canvas  {
 	 * @param g - tool to draw
 	 */
 	private void drawBackground(Graphics g) {
-		// Set background to black
 		g.setColor(Color.black);
 		g.fillRect(0, 0, getw(), geth());
-
-		// Dotted line in the middle
-		g.setColor(Color.white);
-		Graphics2D g2d = (Graphics2D) g; // a more complex Graphics class used to draw Objects (as in give in an Object
-											// in parameter and not dimensions or coordinates)
-		// How to make a dotted line:
-		Stroke dashed = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] { 10 }, 0);
-		g2d.setStroke(dashed);
-		g.drawLine(getw() / 2, 0, getw() / 2, geth());
 	}
 
 
-	public void drawImageArray(Graphics g) {
+	public void drawImageArray(Graphics g, GenerateImage generateImage) {
 		int h = geth();
 		int w = getw();
 
@@ -130,7 +117,9 @@ public class GameUI extends Canvas  {
 		Random random = new Random();
 		for(int row = 0; row<IMG_SIZE; row++) {
 			for(int col = 0; col<IMG_SIZE; col++) {
-				int colorNumber = Color.HSBtoRGB(0, 0, random.nextFloat());
+				float grayValue = (float) generateImage.getGrayValue(row, col);
+				int colorNumber = Color.HSBtoRGB(0, 0, grayValue);
+				// int colorNumber = Color.HSBtoRGB(0, 0, random.nextFloat());
 				g.setColor(new Color(colorNumber));
 				g.fillRect(col*wSize, row*hSize, wSize, hSize);
 			}

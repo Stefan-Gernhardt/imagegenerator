@@ -28,6 +28,7 @@ public class MnistSimple {
     public static final int IMG_SIZE = 28;
 
     public static final String MNIST_SIMPLE_FILE_NAME = "MnistSimple";
+    public static final String MNIST_SIMPLE_FILE_NAME_INIT_VALUES_ARE_ZERO = "MnistSimple196";
 
     public static final String MODEL_FILE_POSTFIX = ".model";
 
@@ -44,15 +45,43 @@ public class MnistSimple {
     public static void main(String[] args) {
         System.out.println("MnistSimple");
 
-        MnistSimple mnistSimple = new MnistSimple();
-        mnistSimple.createTrainSaveMnistModel();
+        int selection = 0;
+        if (args.length == 0) {
+            System.out.println("No command-line arguments provided.");
+            System.out.println("0 for default");
+            System.out.println("1 for net initialization with zeros");
+            System.exit(1);
+        } else {
+            selection = Integer.parseInt(args[0]);
+        }
+
+        if(selection == 0) {
+            MnistSimple mnistSimple = new MnistSimple();
+            mnistSimple.createTrainSaveMnistModel();
+        }
+
+        if(selection == 1) {
+            MnistSimple mnistSimple = new MnistSimple();
+            mnistSimple.createTrainSaveMnistModelInitValuesAreZeros();
+        }
     }
+
 
     public void createTrainSaveMnistModel() {
         loadData();
         createNet();
         trainNet();
+        saveModel();
     }
+
+
+    public void createTrainSaveMnistModelInitValuesAreZeros() {
+        loadData();
+        createNet196();
+        trainNet();
+        saveModel196();
+    }
+
 
     public void validate() {
         int detectionCounter = 0;
@@ -83,10 +112,11 @@ public class MnistSimple {
         printEval(0);
         printEval(1);
 
+        double detectionRate = 0;
         DataSet data = new DataSet(trainingInputs, trainingOutputs);
-        for(int loop=0; loop<1000; loop++) {
+        for(int loop=0; loop<1000 || detectionRate<0.95; loop++) {
             model.fit(data);
-            if(loop % 100 == 0) {
+            if(loop % 10 == 0) {
                 System.out.println("------------------------------------------------------------------");
                 System.out.println("Loop: " + loop);
 
@@ -109,28 +139,39 @@ public class MnistSimple {
 
                     sum = sum + evalResult.value;
                 }
-                System.out.println("mean detection value: " + sum / (mnistTrainMatrix.length*1.0) + "  detection rate: " + detectionCounter/(mnistTrainMatrix.length*1.0));
+                detectionRate = detectionCounter/(mnistTrainMatrix.length*1.0);
+                System.out.println("mean detection value: " + sum / (mnistTrainMatrix.length*1.0) + "  detection rate: " + detectionRate);
             }
         }
         System.out.println();
         printEval(0);
         printEval(1);
-
-        save();
-
     }
 
 
-    private void printEval(int i) {
+    public void printEval(int i) {
         INDArray evalInput = Nd4j.zeros(1, IMG_SIZE*IMG_SIZE);
         evalInput.putRow(0, trainingInputs.getRow(i));
         List<INDArray> outList = model.feedForward(evalInput, false);
-        INDArray out = outList.get(2);
+        INDArray out = outList.get(outList.size()-1);
         System.out.println(out.toString());
         System.out.println("winner: " + askModel(evalInput).label + " " + askModel(evalInput).value + " label: " + mnistTrainMatrix[i].getLabel());
     }
 
-    private void printImage(int i) {
+    public void printImage(INDArray indArray) {
+        System.out.println("----------------------------");
+        System.out.println("INDArray");
+        for(int row=0; row<mnistTrainMatrix[0].getNumberOfRows(); row++) {
+            for (int col = 0; col < mnistTrainMatrix[0].getNumberOfColumns(); col++) {
+                int value = indArray.getDouble(0, row*IMG_SIZE + col) > 0 ? 1 : 0;
+                System.out.print("" + value);
+            }
+            System.out.println();
+        }
+
+    }
+
+    public void printImage(int i) {
         mnistTrainMatrix[i].print();
 
         System.out.println("----------------------------");
@@ -151,9 +192,13 @@ public class MnistSimple {
 
     }
 
+    public MnistMatrix getTrainingImage(int i) {
+        return mnistTrainMatrix[i];
+    }
+
     public EvalResult askModel(INDArray input) {
         List<INDArray> outList = model.feedForward(input, false);
-        INDArray out = outList.get(2);
+        INDArray out = outList.get(outList.size()-1);
 
         int winner = 0;
         double winnerValue = 0;
@@ -167,6 +212,14 @@ public class MnistSimple {
 
         return new EvalResult(winner, winnerValue);
     }
+
+
+    public double askModel(INDArray input, int digit) {
+        List<INDArray> outList = model.feedForward(input, false);
+        INDArray out = outList.get(outList.size()-1);
+        return out.getDouble(0, digit);
+    }
+
 
     public void createNet() {
 
@@ -196,6 +249,63 @@ public class MnistSimple {
         System.out.println(model.summary());
         System.out.println("summary end");
     }
+
+    public void createNet196() {
+
+        conf = new NeuralNetConfiguration.Builder()
+                .seed(4711)
+                .weightInit(WeightInit.XAVIER)
+                .updater(Updater.ADAM)
+                .list()
+                .layer(0, new DenseLayer.Builder()
+                        .nIn(IMG_SIZE * IMG_SIZE)
+                        .nOut(196)
+                        .activation(Activation.RELU)
+                        //! .weightInit(WeightInit.ONES)
+                        //! .weightInit(WeightInit.ZERO)
+                        .weightInit(WeightInit.XAVIER)
+
+                        .build())
+                .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+                        .nIn(100)
+                        .nOut(10)
+                        .activation(Activation.SOFTMAX)
+                        //! .weightInit(WeightInit.ONES)
+                        //! .weightInit(WeightInit.ZERO)
+                        .weightInit(WeightInit.XAVIER)
+                        .build())
+                .build();
+
+        model = new MultiLayerNetwork(conf);
+        model.init();
+
+        /*
+        Layer[] layers = model.getLayers();
+        for(int l=0; l<layers.length; l++) {
+            Layer layer = layers[l];
+
+            INDArray paramsOfLayer = layer.params();
+            long layerSize = layer.numParams();
+            System.out.println("layer.numParams(): " + layer.numParams());
+            System.out.println("paramsOfLayer.size(0): " + paramsOfLayer.size(0));
+
+
+            for(int p=0; p<paramsOfLayer.size(0); p++) {
+                paramsOfLayer.put(0, p, Math.random());
+            }
+            // layer.setParams(Nd4j.rand(paramsOfLayer.shape()));
+        }
+        */
+
+        // INDArray all_params = model.params();
+        // model.setParams(Nd4j.rand(all_params.shape()));//set random values with the same shape
+
+        System.out.println("summary start");
+        System.out.println(model.summary());
+        System.out.println("summary end");
+    }
+
+
 
     public void loadData() {
         try {
@@ -242,17 +352,40 @@ public class MnistSimple {
         }
     }
 
-    public void save() {
+    public INDArray getMnistTrainImage(int i) {
+        return trainingInputs.getRow(i);
+    }
+
+    public void saveModel() {
         try {
-            String name = MNIST_SIMPLE_FILE_NAME + ".model";
+            String name = MNIST_SIMPLE_FILE_NAME + MODEL_FILE_POSTFIX;
             ModelSerializer.writeModel(this.model, name, true);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     public void loadModel() {
         try {
             String name = MNIST_SIMPLE_FILE_NAME + MODEL_FILE_POSTFIX;
+            model = ModelSerializer.restoreMultiLayerNetwork(name);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveModel196() {
+        try {
+            String name = MNIST_SIMPLE_FILE_NAME_INIT_VALUES_ARE_ZERO + MODEL_FILE_POSTFIX;
+            ModelSerializer.writeModel(this.model, name, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadModel196() {
+        try {
+            String name = MNIST_SIMPLE_FILE_NAME_INIT_VALUES_ARE_ZERO + MODEL_FILE_POSTFIX;
             model = ModelSerializer.restoreMultiLayerNetwork(name);
         } catch (IOException e) {
             e.printStackTrace();

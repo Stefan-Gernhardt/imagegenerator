@@ -1,6 +1,8 @@
 package org.ui;
 
 
+import main.GenerateImage;
+
 import java.util.concurrent.TimeUnit;
 
 
@@ -22,44 +24,18 @@ public class UI {
 	}
 
 
-	public void mainLoop() {
+	public void mainLoop(GenerateImage generateImage) {
 		gameUI.start();
-
-		//! gameUI.draw();
 
 		int timeoutTicks = 0;
 		do {
 			timeoutTicks++;
-			gameUI.draw();
+			gameUI.draw(generateImage);
+			// generateImage.findBetterImage();
+			generateImage.findBetterImageForDiscriminatorAndGenerator();
 
-			//! wait_(100);
 		} while((gameUI.getGameState() != GameUI.Stopped_We_have_a_winner) && (timeoutTicks<TIME_OUT));
 
-		//! wait_(1000);
-
-	}
-
-	public void playOnePoint() {
-		gameUI.start();
-
-		// game loop for one point
-		gameUI.draw();
-
-		int gameTicks = 0;
-		do {
-			gameTicks++;
-			gameUI.update();
-			gameUI.draw();
-
-			wait_(100);
-		} while((gameUI.getGameState() != GameUI.Stopped_We_have_a_winner) && (gameTicks<TIME_OUT));
-
-		System.out.println();
-		wait_(1000);
-
-		if(gameTicks >= TIME_OUT) {
-			return;
-		}
 	}
 
 

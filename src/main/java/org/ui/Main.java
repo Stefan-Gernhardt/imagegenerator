@@ -1,12 +1,13 @@
 package org.ui;
 
+import main.GenerateImage;
+
 public class Main {
 
     public static void main(String[] args) {
-
         System.out.println("UI");
         UI ui = new UI(true);
-        ui.mainLoop();
+        ui.mainLoop(new GenerateImage());
     }
 
 }
