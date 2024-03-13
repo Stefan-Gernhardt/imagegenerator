@@ -32,7 +32,7 @@ public class UI {
 			timeoutTicks++;
 			gameUI.draw(generateImage);
 			// generateImage.findBetterImage();
-			generateImage.findBetterImageForDiscriminatorAndGenerator();
+			generateImage.findBetterImage();
 
 		} while((gameUI.getGameState() != GameUI.Stopped_We_have_a_winner) && (timeoutTicks<TIME_OUT));
 

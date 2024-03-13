@@ -5,9 +5,8 @@ public class Main {
 
 	public static void main(String[] args) {
 		System.out.println("Image Generator");
-		// new GenerateImage().generate(5);
-		new GenerateImage().generateWithDiscriminatorAndGenerator();
-
+		// new GenerateImage().generateSimple();
+		// new GenerateImage().generateWithDiscriminatorAndGenerator();
+		new GenerateImage().generateWithGeneticAlgo();
 	}
-
 }
