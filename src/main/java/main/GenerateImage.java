@@ -2,8 +2,10 @@ package main;
 
 import org.deeplearning.Discriminator;
 import org.deeplearning.Generator;
+import org.deeplearning.MnistData;
 import org.deeplearning.MnistSimple;
 import org.deeplearning.Util;
+import org.deeplearning.validateResult;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.ui.UI;
@@ -47,6 +49,8 @@ public class GenerateImage {
 
     private boolean goodImageCreated = false;
 
+    private boolean generateImageOrTakeImage = false;
+    MnistData mnistData = null;
     private int iteration = 0;
 
     public GenerateImage() {
@@ -81,20 +85,6 @@ public class GenerateImage {
         ui.mainLoop(this);
     }
 
-    private void setUpGenerateWithDiscriminatorAndGenerator() {
-        mode = 2;
-
-        generator = new Generator();
-        discriminator = new Discriminator();
-    }
-
-    public void generateWithDiscriminatorAndGenerator() {
-        setUpGenerateWithDiscriminatorAndGenerator();
-        setDigit(5);
-        UI ui = new UI(true);
-        ui.mainLoop(this);
-    }
-
     private void setUpGenerateWithGeneticAlgo() {
         mode = 3;
 
@@ -120,6 +110,26 @@ public class GenerateImage {
         setUpGenerateWithGeneticAlgo();
         setDigit(5);
 
+        UI ui = new UI(true);
+        ui.mainLoop(this);
+    }
+
+    private void setUpGenerateWithDiscriminatorAndGenerator() {
+        mode = 2;
+
+        generator = new Generator();
+        discriminator = new Discriminator();
+
+        mnistData = new MnistData();
+
+        // for(int i=0; i<mnistData.getTrainingOutputs().rows(); i++) {
+        //    System.out.println("i: " + i + " " + mnistData.getTrainingOutputs().getRow(i));
+        //}
+    }
+
+    public void generateWithDiscriminatorAndGenerator() {
+        setUpGenerateWithDiscriminatorAndGenerator();
+        setDigit(5);
         UI ui = new UI(true);
         ui.mainLoop(this);
     }
@@ -215,10 +225,6 @@ public class GenerateImage {
             this.mnistSimple.printImage(imageINDArray);
             goodImageCreated = true;
         }
-    }
-
-    public void findBetterImageForDiscriminatorAndGenerator() {
-        imageINDArray = generator.askModel();
     }
 
     private void findBetterImageGeneticAlgo() {
@@ -333,7 +339,6 @@ public class GenerateImage {
         return meanScore / MEAN_LOOP;
     }
 
-
     public void copyIndArrayElementByElement(INDArray a1, INDArray a2) {
         for (int r = 0; r < a1.rows(); r++) {
             for (int c = 0; c < a1.columns(); c++) {
@@ -341,5 +346,32 @@ public class GenerateImage {
                 a2.put(r, c, value);
             }
         }
+    }
+
+
+    public void findBetterImageForDiscriminatorAndGenerator() {
+        generateImageOrTakeImage = !generateImageOrTakeImage;
+
+        if(generateImageOrTakeImage) {
+            //! generator.generateImage();
+        }
+        else {
+
+        }
+
+
+        for(int p=0; p<IMG_SIZE*IMG_SIZE; p++) {
+            imageINDArray.put(0, p, mnistData.getTrainingInputs().getDouble(1, p));
+        }
+
+        System.out.println("validate discrimminator");
+
+        validateResult validate = mnistData.validate(discriminator, digit);
+
+        System.out.println("rate: " + validate.winRate + " average: " + validate.average);
+
+        System.exit(1); //!
+
+        System.out.println("iteration: " + iteration++);
     }
 }

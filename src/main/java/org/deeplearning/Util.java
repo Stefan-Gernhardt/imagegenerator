@@ -66,4 +66,16 @@ public class Util {
             geneticSTDINDArray.put(0, c, stdDev);
         }
     }
+
+    public static void printIndarray(INDArray indArray) {
+        System.out.println("----------------------------");
+        System.out.println("INDArray");
+        for (int row = 0; row < indArray.rows(); row++) {
+            for (int col = 0; col < indArray.columns(); col++) {
+                double value = indArray.getDouble(row, col);
+                System.out.print("" + value + ", ");
+            }
+            System.out.println();
+        }
+    }
 }
