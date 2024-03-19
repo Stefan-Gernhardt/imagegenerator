@@ -7,8 +7,11 @@ import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.mnistDataReader.MnistMatrix;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.util.List;
@@ -84,5 +87,20 @@ public class Discriminator {
         if(print) System.out.println();
 
         return new EvalResult(winner, winnerValue);
+    }
+
+    public INDArray askModelGetGradient(INDArray input) {
+        List<INDArray> outList = model.feedForward(input, false);
+        return outList.get(outList.size() - 1);
+    }
+
+    public void train(MnistMatrix mnistTrainMatrix, INDArray image) {
+        INDArray trainingOutput = Nd4j.zeros(1, 2);
+        trainingOutput.put(0,IS_TRUTH, 1.0);
+        trainingOutput.put(0, IS_FAKE, askModelGetGradient(image.reshape(1, IMG_SIZE * IMG_SIZE)).getDouble(IS_FAKE));
+        System.out.println("" + trainingOutput); //!
+
+        DataSet data = new DataSet(image.reshape(1, IMG_SIZE * IMG_SIZE), trainingOutput);
+        model.fit(data);
     }
 }

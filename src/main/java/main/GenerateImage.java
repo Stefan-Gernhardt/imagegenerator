@@ -364,14 +364,11 @@ public class GenerateImage {
             imageINDArray.put(0, p, mnistData.getTrainingInputs().getDouble(1, p));
         }
 
-        System.out.println("validate discrimminator");
+        System.out.println("validateIsTruthScoreAverage: " + mnistData.validateIsTruthScoreAverage(discriminator, digit));
 
-        validateResult validate = mnistData.validate(discriminator, digit);
-
-        System.out.println("rate: " + validate.winRate + " average: " + validate.average);
-
-        System.exit(1); //!
+        mnistData.trainDiscriminator(discriminator, digit);
 
         System.out.println("iteration: " + iteration++);
+        if(iteration>3) System.exit(1); //!
     }
 }

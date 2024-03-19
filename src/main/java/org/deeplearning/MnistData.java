@@ -6,6 +6,7 @@ import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 
 import java.io.IOException;
+import java.util.Random;
 
 public class MnistData {
     public static final int IMG_SIZE = 28;
@@ -129,10 +130,46 @@ public class MnistData {
             }
         }
 
-        System.out.println("countData: " + countData + " / " + mnistValidationMatrix.length);
-        System.out.println("win: "   + 1.0*winner  /  countData);
+        // System.out.println("countData: " + countData + " / " + mnistValidationMatrix.length);
+        // System.out.println("win: "   + 1.0*winner  /  countData);
 
         return new validateResult(1.0*winner / countData, winRate / winner);
+    }
+
+    public double validateIsTruthScoreAverage(Discriminator discriminator, int digit) {
+        int countData = 0;
+
+        double scoreSum = 0;
+
+        for(int i=0; i<mnistValidationMatrix.length; i++) {
+            int label = getLabelValidationData(i);
+            if(label == digit) {
+                countData++;
+
+                INDArray evalInputRow = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
+                evalInputRow.putRow(0, validationInputs.getRow(i));
+
+                double isTruthScore = discriminator.askModelGetGradient(evalInputRow).getDouble(0);
+
+                scoreSum = scoreSum + isTruthScore;
+            }
+        }
+
+        // System.out.println("countData: " + countData + " / " + mnistValidationMatrix.length);
+        // System.out.println("win: "   + 1.0*winner  /  countData);
+
+        return scoreSum / countData;
+    }
+
+    public void trainDiscriminator(Discriminator discriminator, int digit) {
+        int index = (int) new Random().nextDouble() * mnistTrainMatrix.length;
+
+        while(mnistTrainMatrix[index].getLabel() != digit) {
+            index++;
+            if(index>=mnistTrainMatrix.length) index = 0;
+        }
+
+        discriminator.train(mnistTrainMatrix[index], trainingInputs.getRow(index));
     }
 
     private int getLabelValidationData(int i) {
