@@ -13,7 +13,7 @@ import java.awt.Stroke;
 import java.awt.image.BufferStrategy;
 import java.util.Random;
 
-import static org.deeplearning.MnistSimple.IMG_SIZE;
+import static org.deeplearning.MnistData.IMG_SIZE;
 
 public class GameUI extends Canvas  {
 	

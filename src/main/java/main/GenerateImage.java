@@ -5,14 +5,13 @@ import org.deeplearning.Generator;
 import org.deeplearning.MnistData;
 import org.deeplearning.MnistSimple;
 import org.deeplearning.Util;
-import org.deeplearning.validateResult;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.ui.UI;
 
 import java.util.Random;
 
-import static org.deeplearning.MnistSimple.IMG_SIZE;
+import static org.deeplearning.MnistData.IMG_SIZE;
 
 public class GenerateImage {
     private static final int MEAN_LOOP = 50;
@@ -49,9 +48,11 @@ public class GenerateImage {
 
     private boolean goodImageCreated = false;
 
-    private boolean generateImageOrTakeImage = false;
+    private boolean generateImageOrTakeImage = true;
     MnistData mnistData = null;
     private int iteration = 0;
+
+
 
     public GenerateImage() {
         iteration = 0;
@@ -60,6 +61,11 @@ public class GenerateImage {
         imageINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
     }
 
+    public void loadMnistSimple() {
+        mnistSimple = new MnistSimple();
+        mnistSimple.createNet();
+        mnistSimple.loadModel();
+    }
     private void setUpGenerateSimple() {
         mode = 1;
 
@@ -121,6 +127,8 @@ public class GenerateImage {
         discriminator = new Discriminator();
 
         mnistData = new MnistData();
+
+        loadMnistSimple();
 
         // for(int i=0; i<mnistData.getTrainingOutputs().rows(); i++) {
         //    System.out.println("i: " + i + " " + mnistData.getTrainingOutputs().getRow(i));
@@ -349,26 +357,103 @@ public class GenerateImage {
     }
 
 
+    public void foundGoodGeneratedImage(INDArray generatedImage) {
+        System.out.println("generated image is good enough");
+        discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+        imageINDArray = generatedImage;
+        generateImageOrTakeImage = false;
+
+        generator.trainSuccessfulFake(generatedImage);
+    }
+
+
     public void findBetterImageForDiscriminatorAndGenerator() {
-        generateImageOrTakeImage = !generateImageOrTakeImage;
+        System.out.println("---------------------------------------------");
+        System.out.println("iteration: " + iteration++);
 
         if(generateImageOrTakeImage) {
-            //! generator.generateImage();
+            INDArray generatedImage = generator.generateImage();
+            System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
+
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
+                foundGoodGeneratedImage(generatedImage);
+            }
+            else {
+                System.out.println("Try up to 10 times to generated a better image");
+                int counter = 10;
+                while(counter > 0 && generateImageOrTakeImage) {
+                    counter--;
+                    generatedImage = generator.generateImage();
+                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
+                    if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
+                        foundGoodGeneratedImage(generatedImage);
+                    }
+                }
+
+                if(generateImageOrTakeImage) {
+                    System.out.println("No better image found");
+                    generator.trainGeneratorWithTrueImage(mnistData, digit);
+                    generateImageOrTakeImage = false;
+                }
+            }
         }
         else {
-
+            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+            generateImageOrTakeImage = true;
         }
+        if(iteration>10000000) System.exit(1); //!
+    }
 
 
-        for(int p=0; p<IMG_SIZE*IMG_SIZE; p++) {
-            imageINDArray.put(0, p, mnistData.getTrainingInputs().getDouble(1, p));
-        }
-
-        System.out.println("validateIsTruthScoreAverage: " + mnistData.validateIsTruthScoreAverage(discriminator, digit));
-
-        mnistData.trainDiscriminator(discriminator, digit);
-
+    public void findBetterImageForDiscriminatorAndGenerator2() {
+        System.out.println("---------------------------------------------");
         System.out.println("iteration: " + iteration++);
-        if(iteration>3) System.exit(1); //!
+
+        if(generateImageOrTakeImage) {
+            INDArray generatedImage = generator.generateImage();
+            //!! imageINDArray = generatedImage;
+            System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
+
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
+                foundGoodGeneratedImage(generatedImage);
+            }
+            else {
+                System.out.println("Try up to 10 times to generated a better image");
+                int counter = 10;
+                while(counter > 0 && generateImageOrTakeImage) {
+                    counter--;
+                    generatedImage = generator.generateImage();
+                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
+                    if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
+                        foundGoodGeneratedImage(generatedImage);
+                    }
+                }
+
+                if(generateImageOrTakeImage) {
+                    System.out.println("No better image found");
+                    generator.trainGeneratorWithTrueImage(mnistData, digit);
+                    generateImageOrTakeImage = false;
+                }
+            }
+        }
+        else {
+            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+            generateImageOrTakeImage = true;
+        }
+
+        // test put image on UI
+        // for(int p=0; p<IMG_SIZE*IMG_SIZE; p++) {
+        //    imageINDArray.put(0, p, mnistData.getTrainingInputs().getDouble(1, p));
+        //}
+
+        // INDArray img = discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+        // imageINDArray = img.reshape(1,IMG_SIZE * IMG_SIZE);
+
+
+        // System.out.println("validateIsTruthScoreAverage: " + mnistData.validateIsTruthScoreAverage(discriminator, digit));
+
+        // mnistData.trainDiscriminatorWithTrueImage(discriminator, digit);
+
+        if(iteration>10000000) System.exit(1); //!
     }
 }

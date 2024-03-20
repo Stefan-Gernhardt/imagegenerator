@@ -19,14 +19,14 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
 import java.io.IOException;
 import java.util.List;
 
+import static org.deeplearning.MnistData.IMG_SIZE;
+
 // Sources:
 // https://gist.github.com/tomthetrainer/7cb2fbc14a5c631a567a98c3134f7dd6
 // https://deeplearning4j.konduit.ai/v/en-1.0.0-beta7/android/image-classification
 // https://medium.com/mlearning-ai/neural-networks-getting-started-with-eclipse-deeplearning4j-897f3662832b
 
 public class MnistSimple {
-    public static final int IMG_SIZE = 28;
-
     public static final String MNIST_SIMPLE_FILE_NAME = "MnistSimple";
 
     public static final String MNIST_SIMPLE_FILE_NAME_INIT_VALUES_ARE_ZERO = "MnistSimple196";

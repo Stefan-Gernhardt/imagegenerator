@@ -119,7 +119,7 @@ public class MnistData {
                 EvalResult evalResult = discriminator.askModel(evalInputRow, printout);
                 if(i < numberPrintOutputs) System.out.println(evalResult.label);
 
-                if(evalResult.label == Discriminator.IS_TRUTH) {
+                if(evalResult.label == Discriminator.INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE) {
                     winner++;
                     winRate = winRate + evalResult.value;
                     // System.out.println("count data: " + countData + "  winrate average: " + winRate / countData);
@@ -161,15 +161,26 @@ public class MnistData {
         return scoreSum / countData;
     }
 
-    public void trainDiscriminator(Discriminator discriminator, int digit) {
-        int index = (int) new Random().nextDouble() * mnistTrainMatrix.length;
+    public INDArray getRandomImage(int digit) {
+        int index = (int)(new Random().nextDouble() * mnistTrainMatrix.length);
 
         while(mnistTrainMatrix[index].getLabel() != digit) {
             index++;
             if(index>=mnistTrainMatrix.length) index = 0;
         }
 
-        discriminator.train(mnistTrainMatrix[index], trainingInputs.getRow(index));
+        return trainingInputs.getRow(index);
+    }
+
+    public INDArray getIndexImage(int startIndex, int digit) {
+        int index = startIndex % mnistTrainMatrix.length;
+
+        while(mnistTrainMatrix[index].getLabel() != digit) {
+            index++;
+            if(index>=mnistTrainMatrix.length) index = 0;
+        }
+
+        return trainingInputs.getRow(index);
     }
 
     private int getLabelValidationData(int i) {
