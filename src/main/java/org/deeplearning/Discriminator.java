@@ -119,6 +119,14 @@ public class Discriminator {
         return gradient.getDouble(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE) >= 0.5;
     }
 
+    public double getScore(INDArray input) {
+        List<INDArray> outList = model.feedForward(input, false);
+
+        INDArray gradient = outList.get(outList.size() - 1);
+
+        return gradient.getDouble(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE);
+    }
+
     public INDArray trainDiscriminatorWithTrueImage(MnistData mnistData, int digit) {
         System.out.println("trainDiscriminatorWithTrueImage"); //!
         INDArray trainingOutput = Nd4j.zeros(1, 1);

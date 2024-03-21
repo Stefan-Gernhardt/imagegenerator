@@ -26,9 +26,9 @@ public class GenerateImage {
 
     Discriminator discriminator = null;
 
-    public final static int N_GEN = 100;
+    public final static int N_GEN = 10;
 
-    public final static int ELITE_N_GEN = 40;
+    public final static int ELITE_N_GEN = 4;
 
     INDArray geneticINDArray = null;
 
@@ -130,9 +130,18 @@ public class GenerateImage {
 
         loadMnistSimple();
 
-        // for(int i=0; i<mnistData.getTrainingOutputs().rows(); i++) {
-        //    System.out.println("i: " + i + " " + mnistData.getTrainingOutputs().getRow(i));
-        //}
+        geneticINDArray = Nd4j.zeros(N_GEN, Generator.RANDOM_SIZE);
+
+        geneticMeanINDArray = Nd4j.zeros(1, Generator.RANDOM_SIZE);
+        saveGeneticMeanINDArray = Nd4j.zeros(1, Generator.RANDOM_SIZE);
+        Util.setIndArrayToConstant(geneticMeanINDArray, 0.5);
+
+        geneticSTDINDArray = Nd4j.zeros(1, Generator.RANDOM_SIZE);
+        saveGeneticSTDINDArray = Nd4j.zeros(1, Generator.RANDOM_SIZE);
+        Util.setIndArrayToConstant(geneticSTDINDArray, 0.5);
+
+        eliteGeneticINDArray = Nd4j.zeros(ELITE_N_GEN, Generator.RANDOM_SIZE);
+        geneticScore = new double[N_GEN];
     }
 
     public void generateWithDiscriminatorAndGenerator() {
@@ -367,7 +376,7 @@ public class GenerateImage {
     }
 
 
-    public void findBetterImageForDiscriminatorAndGenerator() {
+    public void findBetterImageForDiscriminatorAndGenerator1() {
         System.out.println("---------------------------------------------");
         System.out.println("iteration: " + iteration++);
 
@@ -405,13 +414,12 @@ public class GenerateImage {
     }
 
 
-    public void findBetterImageForDiscriminatorAndGenerator2() {
+    public void findBetterImageForDiscriminatorAndGenerator() {
         System.out.println("---------------------------------------------");
         System.out.println("iteration: " + iteration++);
 
         if(generateImageOrTakeImage) {
             INDArray generatedImage = generator.generateImage();
-            //!! imageINDArray = generatedImage;
             System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
 
             if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
@@ -430,9 +438,53 @@ public class GenerateImage {
                 }
 
                 if(generateImageOrTakeImage) {
-                    System.out.println("No better image found");
-                    generator.trainGeneratorWithTrueImage(mnistData, digit);
-                    generateImageOrTakeImage = false;
+                    System.out.println("try genetic algo to find a good image");
+                    Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
+
+                    int maxIndex = 0;
+                    double maxScore = -1.0;
+                    for (int i = 0; i < N_GEN; i++) {
+                        //!! geneticScore[i] = discriminator.getScore(geneticINDArray.getRow(i).reshape(1, ));
+                        System.out.println(geneticINDArray.getRow(i));
+                        System.out.println("i: " + i + "  score: " + geneticScore[i]);
+                        if(geneticScore[i] >= maxScore) {
+                            maxIndex = i;
+                            maxScore = geneticScore[i];
+                        }
+                    }
+
+                    System.out.println("max score genetic algo: " + maxScore);
+
+                    while (maxScore < 0.5) {
+                        int eliteRow = 0;
+                        for (int i = 0; i < N_GEN; i++) {
+                            if (isEliteScore(geneticScore[i], geneticScore)) {
+                                if (eliteRow < ELITE_N_GEN) {
+                                    for (int c = 0; c < geneticINDArray.columns(); c++) {
+                                        double value = geneticINDArray.getDouble(i, c);
+                                        eliteGeneticINDArray.put(eliteRow, c, value);
+                                    }
+                                    eliteRow++;
+                                }
+                            }
+                        }
+
+                        Util.computeMeanAndStd(eliteGeneticINDArray, geneticMeanINDArray, geneticSTDINDArray);
+                        Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
+
+                        for (int i = 0; i < N_GEN; i++) {
+                            geneticScore[i] = discriminator.getScore(generatedImage);
+                            if(geneticScore[i] >= maxScore) {
+                                System.out.println("i: " + i + "  score: " + geneticScore[i]);
+                                maxIndex = i;
+                                maxScore = geneticScore[i];
+                            }
+                        }
+                        System.out.println("max score genetic algo: " + maxScore);
+                        System.exit(1);
+                    }
+
+                    System.exit(1);
                 }
             }
         }
