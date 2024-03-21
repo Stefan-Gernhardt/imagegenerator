@@ -36,10 +36,11 @@ public class Generator {
         createNet();
     }
 
-    public void generateRandomizedInput() {
+    public INDArray generateRandomizedInput() {
         for(int pixel=0; pixel<RANDOM_SIZE; pixel++) {
             randomInput.put(0, pixel, r.nextDouble());
         }
+        return randomInput;
     }
 
     public void createNet() {
@@ -82,12 +83,18 @@ public class Generator {
         return out;
     }
 
+    public INDArray generateImage(INDArray input) {
+        // System.out.println("" + input);
+        List<INDArray> outList = model.feedForward(input, false);
+        INDArray out = outList.get(outList.size() - 1);
+        return out;
+    }
+
     public void trainSuccessfulFake(INDArray generatedImage) {
         System.out.println("trainSuccessfulFake");
 
         DataSet data = new DataSet(randomInput.reshape(1, RANDOM_SIZE), generatedImage.reshape(1, IMG_SIZE * IMG_SIZE));
         model.fit(data);
-
     }
 
 
@@ -110,5 +117,9 @@ public class Generator {
         DataSet data = new DataSet(randomInput.reshape(1, RANDOM_SIZE), mnistData.getIndexImage(getHashIndex(countImages), digit).reshape(1, IMG_SIZE * IMG_SIZE));
         // DataSet data = new DataSet(randomInput.reshape(1, RANDOM_SIZE), mnistData.getRandomImage(digit).reshape(1, IMG_SIZE * IMG_SIZE));
         model.fit(data);
+    }
+
+    public INDArray getRandomINDArray() {
+        return randomInput;
     }
 }

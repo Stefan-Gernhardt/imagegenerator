@@ -78,4 +78,19 @@ public class Util {
             System.out.println();
         }
     }
+
+
+    public static void copyOneDimIndArrayToTwoDimIndArray(INDArray oneDimIndArray, INDArray twoDimIndArray, int row) {
+        for(int c=0; c<oneDimIndArray.columns(); c++) {
+            double value = oneDimIndArray.getDouble(0, c);
+            twoDimIndArray.put(row, c, value);
+        }
+    }
+
+    public static void copyOneDimIndArrayToOneDimIndArray(INDArray ia1, INDArray ia2) {
+        for(int c=0; c<ia1.columns(); c++) {
+            double value = ia1.getDouble(0, c);
+            ia2.put(0, c, value);
+        }
+    }
 }

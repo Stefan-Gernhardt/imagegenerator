@@ -40,18 +40,21 @@ public class Discriminator {
                         .nOut(1024)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
+                        //.dropOut(0.2)
                         .build())
                 .layer(1, new DenseLayer.Builder()
                         .nIn(1024)
                         .nOut(512)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
+                        //.dropOut(0.2)
                         .build())
                 .layer(2, new DenseLayer.Builder()
                         .nIn(512)
                         .nOut(256)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
+                        //.dropOut(0.2)
                         .build())
                 // .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
                 // .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.MEAN_SQUARED_LOGARITHMIC_ERROR) //! try out
@@ -61,7 +64,6 @@ public class Discriminator {
                         // However, in multi-class classification,
                         // it can still be used
                         // if each class is treated as a binary classification problem independently.
-
                         .nIn(256)
                         .nOut(1)
                         //.activation(Activation.SOFTMAX)
