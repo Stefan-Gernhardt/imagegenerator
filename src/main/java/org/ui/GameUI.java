@@ -27,7 +27,7 @@ public class GameUI extends Canvas  {
 
 	private static final long serialVersionUID = 1L;
 
-	public final static int WIDTH  = 200; 
+	public final static int WIDTH  = 196;
 	public final static int HEIGHT = 140; 
 
 	private MainMenu menu = null;

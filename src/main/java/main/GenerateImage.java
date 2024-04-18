@@ -14,7 +14,8 @@ import java.util.Random;
 import static org.deeplearning.MnistData.IMG_SIZE;
 
 public class GenerateImage {
-    private static final int MEAN_LOOP = 50;
+
+    private static final int MEAN_LOOP = 10;
 
     private int mode = 0;
 
@@ -51,6 +52,9 @@ public class GenerateImage {
     private boolean generateImageOrTakeImage = true;
     MnistData mnistData = null;
     private int iteration = 0;
+    private double globalScore = 0.0;
+
+    private Random random = null;
 
 
     public GenerateImage() {
@@ -58,6 +62,7 @@ public class GenerateImage {
         goodImageCreated = false;
 
         imageINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
+        random = new Random(0);
     }
 
     public void loadMnistSimple() {
@@ -101,7 +106,7 @@ public class GenerateImage {
 
         geneticMeanINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
         saveGeneticMeanINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
-        Util.setIndArrayToConstant(geneticMeanINDArray, 0.5);
+        Util.setIndArrayToConstant(geneticMeanINDArray, 0.5 );
 
         geneticSTDINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
         saveGeneticSTDINDArray = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
@@ -129,6 +134,8 @@ public class GenerateImage {
 
         loadMnistSimple();
 
+
+
         geneticINDArray = Nd4j.zeros(N_GEN, Generator.RANDOM_SIZE);
 
         geneticMeanINDArray = Nd4j.zeros(1, Generator.RANDOM_SIZE);
@@ -143,7 +150,7 @@ public class GenerateImage {
         geneticScore = new double[N_GEN];
 
         for(int i=0; i<N_GEN; i++) {
-            Util.copyOneDimIndArrayToTwoDimIndArray(generator.generateRandomizedInput(), geneticINDArray, i);
+            Util.copyOneDimIndArrayToTwoDimIndArray(generator.getRandomInput().generateRandomizedInput(), geneticINDArray, i);
         }
     }
 
@@ -380,177 +387,331 @@ public class GenerateImage {
 
 
     public void findBetterImageForDiscriminatorAndGenerator() {
-        System.out.println("---------------------------------------------");
-        System.out.println("iteration: " + iteration++);
-
         if(generateImageOrTakeImage) {
             INDArray generatedImage = generator.generateImage();
-            System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
 
-            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
-                foundGoodGeneratedImage(generatedImage);
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
+                //! double score = mnistSimple.askModel(generatedImage, digit);
+
+                //! if(score > globalScore) {
+                    //! globalScore = score;
+                    System.out.println("---------------------------------------------");
+                    System.out.println("iteration: " + iteration++);
+                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + globalScore);
+                    discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+                    generator.trainSuccessfulFake(generatedImage);
+                    imageINDArray = generatedImage;
+                //!}
             }
             else {
-                System.out.println("Try up to 10 times to generated a better image");
-                int counter = 10;
-                while(counter > 0 && generateImageOrTakeImage) {
-                    counter--;
-                    generatedImage = generator.generateImage();
-                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + mnistSimple.askModel(generatedImage, digit));
-                    if(discriminator.isTheGeneratedImageGoodEnough(generatedImage)) {
-                        foundGoodGeneratedImage(generatedImage);
-                    }
-                }
-
-                if(generateImageOrTakeImage) {
-                    System.out.println("No better image found");
-                    generator.trainGeneratorWithTrueImage(mnistData, digit);
-                    generateImageOrTakeImage = false;
-                }
+                generator.trainGeneratorWithTrueImage(mnistData, digit);
             }
+            generateImageOrTakeImage = false;
         }
         else {
             discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
             generateImageOrTakeImage = true;
         }
-        if(iteration>10000000) System.exit(1); //!
     }
 
 
     public void findBetterImageForDiscriminatorAndGenerator2() {
-        // if(iteration >= 1) return;
-
-        System.out.println("---------------------------------------------");
-        System.out.println("iteration: " + iteration++);
-
-
         if(generateImageOrTakeImage) {
-            INDArray maxImage = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
-            for(int i=0; i<N_GEN; i++) {
-                Util.copyOneDimIndArrayToTwoDimIndArray(generator.generateRandomizedInput(), geneticINDArray, i);
+            INDArray generatedSingleImage = generator.generateImage();
+
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedSingleImage, 0.5)) {
+                generateImageOrTakeImage = false;
+
+                System.out.println("---------------------------------------------");
+                System.out.println("iteration: " + iteration++);
+                double generatedSingleImageScoreMnist = mnistSimple.askModel(generatedSingleImage, digit);
+                double generatedSingleImageScore = discriminator.getScore(generatedSingleImage);
+                System.out.println("generatedSingleImage score: " + generatedSingleImageScore + " MNistSimple: " + generatedSingleImageScoreMnist + "  " + generator.getRandomInputLayer());
+
+                if(generatedSingleImageScoreMnist < 0.9) {
+                    imageINDArray = generatedSingleImage;
+                    discriminator.trainDiscriminatorWithFakeImage(generatedSingleImage);
+                    generator.trainSuccessfulFake(generatedSingleImage);
+                }
+                else {
+                    INDArray geneticImage = geneticImage(generatedSingleImageScoreMnist);
+                    double geneticImageScoreMnist = mnistSimple.askModel(geneticImage, digit);
+                    System.out.println("geneticImageScoreMnist: " + geneticImageScoreMnist);
+                    discriminator.trainDiscriminatorWithFakeImage(geneticImage);
+                    generator.trainSuccessfulFake(geneticImage);
+                }
             }
-
-            double maxScore = -1.0;
-            do {
-                maxScore = -1.0;
-
-                for (int i = 0; i < N_GEN; i++) {
-                    INDArray generatedImage = generator.generateImage(geneticINDArray.getRow(i).reshape(1, Generator.RANDOM_SIZE));
-
-                    geneticScore[i] = discriminator.getScore(generatedImage);
-                    System.out.println("score: " + geneticScore[i]);
-                    if (geneticScore[i] >= maxScore) {
-                        maxScore = geneticScore[i];
-                        Util.copyOneDimIndArrayToOneDimIndArray(generatedImage, maxImage);
-                    }
-                }
-                System.out.println("max score: " + maxScore);
-
-                int eliteRow = 0;
-                for (int i = 0; i < N_GEN; i++) {
-                    if (isEliteScore(geneticScore[i], geneticScore)) {
-                        if (eliteRow < ELITE_N_GEN) {
-                            for (int c = 0; c < geneticINDArray.columns(); c++) {
-                                double value = geneticINDArray.getDouble(i, c);
-                                eliteGeneticINDArray.put(eliteRow, c, value);
-                            }
-                            eliteRow++;
-                        }
-                    }
-                }
-                Util.computeMeanAndStd(eliteGeneticINDArray, geneticMeanINDArray, geneticSTDINDArray);
-                System.out.println("mean: " + geneticMeanINDArray);
-                System.out.println("std: " + geneticSTDINDArray);
-                Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
-            } while(maxScore < 0.5);
-
-            // System.out.println("generated image is good enough");
-            discriminator.trainDiscriminatorWithFakeImage(maxImage);
-            generator.trainSuccessfulFake(maxImage);
-
-            imageINDArray = maxImage;
-            generateImageOrTakeImage = false;
-        }
-        else { // take real image
-            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
-            generateImageOrTakeImage = true;
-        }
-
-
-
-
-            /*
-            if(generateImageOrTakeImage) {
-                System.out.println("try genetic algo to find a good image");
-                Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
-
-                int maxIndex = 0;
-                double maxScore = -1.0;
-                for (int i = 0; i < N_GEN; i++) {
-                    //!! geneticScore[i] = discriminator.getScore(geneticINDArray.getRow(i).reshape(1, ));
-                    System.out.println(geneticINDArray.getRow(i));
-                    System.out.println("i: " + i + "  score: " + geneticScore[i]);
-                    if(geneticScore[i] >= maxScore) {
-                        maxIndex = i;
-                        maxScore = geneticScore[i];
-                    }
-                }
-
-                System.out.println("max score genetic algo: " + maxScore);
-
-                while (maxScore < 0.5) {
-                    int eliteRow = 0;
-                    for (int i = 0; i < N_GEN; i++) {
-                        if (isEliteScore(geneticScore[i], geneticScore)) {
-                            if (eliteRow < ELITE_N_GEN) {
-                                for (int c = 0; c < geneticINDArray.columns(); c++) {
-                                    double value = geneticINDArray.getDouble(i, c);
-                                    eliteGeneticINDArray.put(eliteRow, c, value);
-                                }
-                                eliteRow++;
-                            }
-                        }
-                    }
-
-                    Util.computeMeanAndStd(eliteGeneticINDArray, geneticMeanINDArray, geneticSTDINDArray);
-                    Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
-
-                    for (int i = 0; i < N_GEN; i++) {
-                        geneticScore[i] = discriminator.getScore(generatedImage);
-                        if(geneticScore[i] >= maxScore) {
-                            System.out.println("i: " + i + "  score: " + geneticScore[i]);
-                            maxIndex = i;
-                            maxScore = geneticScore[i];
-                        }
-                    }
-                    System.out.println("max score genetic algo: " + maxScore);
-                    System.exit(1);
-                }
-
-                System.exit(1);
+            else {
+                generator.trainGeneratorWithTrueImage(mnistData, digit);
             }
         }
         else {
             discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
             generateImageOrTakeImage = true;
         }
-        */
+    }
 
-        // test put image on UI
-        // for(int p=0; p<IMG_SIZE*IMG_SIZE; p++) {
-        //    imageINDArray.put(0, p, mnistData.getTrainingInputs().getDouble(1, p));
-        //}
+    private INDArray geneticImage(double inputScore) {
+        boolean verbose = false;
+        INDArray maxImage = Nd4j.zeros(1, IMG_SIZE * IMG_SIZE);
 
-        // INDArray img = discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
-        // imageINDArray = img.reshape(1,IMG_SIZE * IMG_SIZE);
+        double maxScoreInit = -1.0;
+        int counter=0;
+        while(counter<N_GEN) {
+            INDArray gI  = generator.generateImage();
+            // double score = discriminator.getScore(gI);
+            double score =  mnistSimple.askModel(gI, digit);
+            if(score > inputScore) {
+                Util.copyOneDimIndArrayToTwoDimIndArray(generator.getRandomInputLayer(), geneticINDArray, counter);
+                geneticScore[counter] = score;
+                counter++;
+
+                if(score > maxScoreInit) {
+                    maxScoreInit = score;
+                    imageINDArray = gI;
+                }
+            }
+        }
+
+        if(verbose) System.out.println("maxScoreInit: " + maxScoreInit);
+
+        int eliteRow = 0;
+        for (int i = 0; i < N_GEN; i++) {
+            if (isEliteScore(geneticScore[i], geneticScore)) {
+                if (eliteRow < ELITE_N_GEN) {
+                    for (int c = 0; c < geneticINDArray.columns(); c++) {
+                        double value = geneticINDArray.getDouble(i, c);
+                        eliteGeneticINDArray.put(eliteRow, c, value);
+                    }
+                    eliteRow++;
+                }
+            }
+        }
+
+        if(verbose) {
+            for (int i = 0; i < N_GEN; i++) {
+                System.out.println("i=" + i + "  " + geneticScore[i] + "  " + geneticINDArray.getRow(i));
+            }
+        }
+
+        Util.computeMeanAndStd(eliteGeneticINDArray, geneticMeanINDArray, geneticSTDINDArray);
+        if(verbose) {
+            System.out.println("mean: " + geneticMeanINDArray);
+            System.out.println("std: " + geneticSTDINDArray);
+
+            for(int i=0; i<ELITE_N_GEN; i++) {
+                System.out.println("i=" + i + "  " + eliteGeneticINDArray.getRow(i));
+            }
+        }
+
+        double maxScore = -1.0;
+        long winnerIndex = -1;
+        for(int geneticLoop=0; geneticLoop<MEAN_LOOP; geneticLoop++) {
+            maxScore = -1.0;
+            winnerIndex = -1;
+
+            int countGeneticLoop = 0;
+            while (countGeneticLoop < N_GEN) {
+                INDArray distribution = Util.getOneRowWithGaussDistribution(geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
+                INDArray generatedImage = generator.generateImage(distribution);
+                // geneticScore[countGeneticLoop] = discriminator.getScore(generatedImage);
+                geneticScore[countGeneticLoop] =  mnistSimple.askModel(generatedImage, digit);
+
+                if (geneticScore[countGeneticLoop] > inputScore) {
+                    Util.copyOneDimIndArrayToTwoDimIndArray(distribution, geneticINDArray, countGeneticLoop);
+
+                    if(verbose) System.out.println("i=" + countGeneticLoop + "  score: " + geneticScore[countGeneticLoop] + geneticINDArray.getRow(countGeneticLoop));
+                    if (geneticScore[countGeneticLoop] >= maxScore) {
+                        maxScore = geneticScore[countGeneticLoop];
+                        winnerIndex = countGeneticLoop;
+                        Util.copyOneDimIndArrayToOneDimIndArray(generatedImage, maxImage);
+                    }
+                    countGeneticLoop++;
+                }
+            }
+            if(verbose) System.out.println("geneticLoop: " + geneticLoop + " max score: " + maxScore);
+
+            eliteRow = 0;
+            for (int i = 0; i < N_GEN; i++) {
+                if (isEliteScore(geneticScore[i], geneticScore)) {
+                    if (eliteRow < ELITE_N_GEN) {
+                        for (int c = 0; c < geneticINDArray.columns(); c++) {
+                            double value = geneticINDArray.getDouble(i, c);
+                            eliteGeneticINDArray.put(eliteRow, c, value);
+                        }
+                        eliteRow++;
+                    }
+                }
+            }
+
+            if(verbose) {
+                System.out.println("elite");
+                System.out.println(eliteGeneticINDArray);
+            }
+
+            Util.computeMeanAndStd(eliteGeneticINDArray, geneticMeanINDArray, geneticSTDINDArray);
+            if(verbose) {
+                System.out.println("mean: " + geneticMeanINDArray);
+                System.out.println("std: " + geneticSTDINDArray);
+            }
+            Util.setIndArrayWithGaussDistribution(geneticINDArray, geneticMeanINDArray, geneticSTDINDArray, 0.0, 1.0);
+        }
+
+        System.out.println("max score: " + maxScore);
+
+        generator.setRandomINDArray(geneticINDArray.getRow(winnerIndex));
+        return maxImage;
+    }
 
 
-        // System.out.println("validateIsTruthScoreAverage: " + mnistData.validateIsTruthScoreAverage(discriminator, digit));
+    public void findBetterImageForDiscriminatorAndGenerator3() {
+        INDArray generatedImage = Nd4j.zeros(1, IMG_SIZE*IMG_SIZE);
 
-        // mnistData.trainDiscriminatorWithTrueImage(discriminator, digit);
 
-        // System.exit(1); //!
-        if(iteration>10000000) System.exit(1); //!
+        if(generateImageOrTakeImage) {
+            Util.copyOneDimIndArrayToOneDimIndArray(generator.generateImage(), generatedImage);
+
+            double discriminatorScore = discriminator.getScore(generatedImage);
+            System.out.println("---------------------------------------------");
+            System.out.println("iteration: " + iteration++);
+            System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + globalScore);
+
+            if(discriminatorScore < 0.5) {
+                generatedImage = manipulateWeightsOfGenerator(discriminatorScore, generatedImage, discriminator);
+                generator.trainGeneratorWithTrueImage(mnistData, digit);
+            }
+
+            discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+            generator.trainSuccessfulFake(generatedImage);
+            imageINDArray = generatedImage;
+
+            generateImageOrTakeImage = false;
+        }
+        else {
+            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+            generateImageOrTakeImage = true;
+        }
+    }
+
+
+    private INDArray manipulateWeightsOfGenerator(double discriminatorScore, INDArray image, Discriminator discriminator) {
+        double score = 0;
+
+        while(discriminatorScore < 0.5) {
+            image = generator.manipulateRandomWeightAndRollbackIfNecessary(image, discriminator, discriminatorScore);
+            discriminatorScore = discriminator.getScore(image);
+            System.out.println("discriminatorScore: " + discriminatorScore);
+        }
+
+        return  image;
+    }
+
+    public void findBetterImageForDiscriminatorAndGenerator4() {
+        if(generateImageOrTakeImage) {
+            INDArray generatedImage = generator.generateImage();
+            System.out.println("---------------------------------------------");
+            System.out.println("generatedImage: " + generatedImage);
+
+            // System.out.println("input layer random: " + generator.getRandomInputLayer());
+
+            double score = mnistSimple.askModel(generatedImage, digit);
+
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
+                globalScore = score;
+                System.out.println("iteration true: " + iteration++);
+                System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + score);
+                discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+                generator.trainSuccessfulFake(generatedImage);
+                imageINDArray = generatedImage;
+                generateImageOrTakeImage = false;
+            }
+            else {
+                // generator.trainGeneratorWithTrueImage(mnistData, digit);
+
+                System.out.println("iteration false: " + iteration++);
+                System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + score);
+
+                generator.manipulateWeightsToRandom();
+
+                /*
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
+                    globalScore = score;
+                    System.out.println("iteration true: " + iteration++);
+                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + score);
+                    discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+                    generator.trainSuccessfulFake(generatedImage);
+                    imageINDArray = generatedImage;
+                    generateImageOrTakeImage = false;
+                }
+
+                for(int l=0; l<10; l++) {
+                    generator.manipulateWeightsToRandom();
+                    generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                    System.out.println("generatedImage: " + generatedImage);
+                    System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+                }
+
+
+                generator.manipulateWeightsToRandom();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToRandom();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToZero();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to zero  : " + discriminator.askModelGetGradient(generatedImage));
+
+
+                generator.manipulateWeightsToOne();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToZero();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToOne();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToRandom();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToRandom();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                generator.manipulateWeightsToRandom();
+                generatedImage = generator.generateImage(generator.getRandomInputLayer());
+                System.out.println("generatedImage: " + generatedImage);
+                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
+
+                // generator.displayWeights();
+
+                System.out.println();
+                */
+            }
+        }
+        else {
+            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+            generateImageOrTakeImage = true;
+        }
     }
 
 }

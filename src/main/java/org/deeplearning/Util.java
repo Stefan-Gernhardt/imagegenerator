@@ -1,6 +1,7 @@
 package org.deeplearning;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.Random;
 
@@ -43,6 +44,21 @@ public class Util {
                 indArray.put(r, c, value);
             }
         }
+    }
+
+    public static INDArray getOneRowWithGaussDistribution(INDArray mean, INDArray std, double lowerBorder, double upperBorder) {
+        Random random = new Random();
+
+        INDArray imageINDArray = Nd4j.zeros(1, mean.columns());
+
+        for (int c = 0; c < mean.columns(); c++) {
+            double value = random.nextGaussian() * mean.getDouble(0, c) + std.getDouble(0, c);
+            if (value > upperBorder) value = upperBorder;
+            if (value < lowerBorder) value = lowerBorder;
+            imageINDArray.put(0, c, value);
+        }
+
+        return imageINDArray;
     }
 
     public static void computeMeanAndStd(INDArray eliteGeneticINDArray, INDArray geneticMeanINDArray, INDArray geneticSTDINDArray) {
@@ -92,5 +108,14 @@ public class Util {
             double value = ia1.getDouble(0, c);
             ia2.put(0, c, value);
         }
+    }
+
+    public static double getMean(INDArray array) {
+        double sum = 0.0;
+        for(int i=0; i< array.columns(); i++) {
+            sum = sum + array.getDouble(0, i);
+        }
+
+        return sum / array.columns();
     }
 }

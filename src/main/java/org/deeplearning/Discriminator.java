@@ -32,6 +32,7 @@ public class Discriminator {
         conf = new NeuralNetConfiguration.Builder()
                 .seed(3)
                 .weightInit(WeightInit.XAVIER)
+                //.biasInit(0.0)
                 //.updater(Updater.ADAM)
                 .updater(new Adam(0.00005))
                 .list()
@@ -98,12 +99,6 @@ public class Discriminator {
         return new EvalResult(winner, winnerValue);
     }
 
-    public INDArray askModelGetGradient(INDArray input) {
-        List<INDArray> outList = model.feedForward(input, false);
-        return outList.get(outList.size() - 1);
-    }
-
-
     public void trainDiscriminatorWithFakeImage(INDArray image) {
         System.out.println("trainDiscriminatorWithFakeImage"); //!
         INDArray trainingOutput = Nd4j.zeros(1, 1);
@@ -113,24 +108,26 @@ public class Discriminator {
         model.fit(data);
     }
 
-    public boolean isTheGeneratedImageGoodEnough(INDArray generatedImage) {
+    public boolean isTheGeneratedImageGoodEnough(INDArray generatedImage, double inputScore) {
         List<INDArray> outList = model.feedForward(generatedImage, false);
-
         INDArray gradient = outList.get(outList.size() - 1);
-
-        return gradient.getDouble(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE) >= 0.5;
+        return gradient.getDouble(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE) >= inputScore;
     }
 
     public double getScore(INDArray input) {
         List<INDArray> outList = model.feedForward(input, false);
-
         INDArray gradient = outList.get(outList.size() - 1);
-
         return gradient.getDouble(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE);
     }
 
+
+    public INDArray askModelGetGradient(INDArray input) {
+        List<INDArray> outList = model.feedForward(input, false);
+        return outList.get(outList.size() - 1);
+    }
+
+
     public INDArray trainDiscriminatorWithTrueImage(MnistData mnistData, int digit) {
-        System.out.println("trainDiscriminatorWithTrueImage"); //!
         INDArray trainingOutput = Nd4j.zeros(1, 1);
         trainingOutput.put(0, INDEX_FOR_PROBABILTY_FOR_REAL_IMAGE, 1.0);
 
