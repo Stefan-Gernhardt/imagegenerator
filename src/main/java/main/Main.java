@@ -7,6 +7,7 @@ public class Main {
 		System.out.println("Image Generator");
 		// new GenerateImage().generateSimple();
 		// new GenerateImage().generateWithGeneticAlgo();
-		new GenerateImage().generateWithDiscriminatorAndGenerator();
+		// new GenerateImage().generateWithDiscriminatorAndGenerator();
+		new ContainerGenerateImages().run();
 	}
 }

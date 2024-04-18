@@ -42,7 +42,8 @@ public class Generator {
     public void createNet() {
 
         conf = new NeuralNetConfiguration.Builder()
-                .seed(12345678)
+                //.seed(12345678)
+                //.weightInit(WeightInit.NORMAL)
                 .weightInit(WeightInit.XAVIER)
                 // .biasInit(0.0)
                 //.updater(Updater.ADAM)

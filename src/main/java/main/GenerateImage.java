@@ -7,8 +7,10 @@ import org.deeplearning.MnistSimple;
 import org.deeplearning.Util;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.ui.GameUI;
 import org.ui.UI;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import static org.deeplearning.MnistData.IMG_SIZE;
@@ -124,7 +126,7 @@ public class GenerateImage {
         ui.mainLoop(this);
     }
 
-    private void setUpGenerateWithDiscriminatorAndGenerator() {
+    public void setUpGenerateWithDiscriminatorAndGenerator() {
         mode = 2;
 
         generator = new Generator();
@@ -133,8 +135,6 @@ public class GenerateImage {
         mnistData = new MnistData();
 
         loadMnistSimple();
-
-
 
         geneticINDArray = Nd4j.zeros(N_GEN, Generator.RANDOM_SIZE);
 
@@ -158,6 +158,8 @@ public class GenerateImage {
         setUpGenerateWithDiscriminatorAndGenerator();
         setDigit(5);
         UI ui = new UI(true);
+
+        ArrayList<GenerateImage> images = new ArrayList<GenerateImage>();
         ui.mainLoop(this);
     }
 
@@ -386,22 +388,17 @@ public class GenerateImage {
     }
 
 
-    public void findBetterImageForDiscriminatorAndGenerator() {
+    public void findBetterImageForDiscriminatorAndGenerator1() {
         if(generateImageOrTakeImage) {
             INDArray generatedImage = generator.generateImage();
 
             if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
-                //! double score = mnistSimple.askModel(generatedImage, digit);
-
-                //! if(score > globalScore) {
-                    //! globalScore = score;
-                    System.out.println("---------------------------------------------");
-                    System.out.println("iteration: " + iteration++);
-                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + globalScore);
-                    discriminator.trainDiscriminatorWithFakeImage(generatedImage);
-                    generator.trainSuccessfulFake(generatedImage);
-                    imageINDArray = generatedImage;
-                //!}
+                System.out.println("---------------------------------------------");
+                System.out.println("iteration: " + iteration++);
+                System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + globalScore);
+                discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+                generator.trainSuccessfulFake(generatedImage);
+                imageINDArray = generatedImage;
             }
             else {
                 generator.trainGeneratorWithTrueImage(mnistData, digit);
@@ -713,5 +710,36 @@ public class GenerateImage {
             generateImageOrTakeImage = true;
         }
     }
+
+    public void findBetterImageForDiscriminatorAndGenerator() {
+        if(generateImageOrTakeImage) {
+            INDArray generatedImage = generator.generateImage();
+            double scoreMnistSimple = mnistSimple.askModel(generatedImage, digit);
+
+            if(scoreMnistSimple > globalScore) {
+                globalScore = scoreMnistSimple;
+                imageINDArray = generatedImage;
+            }
+
+            if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
+                System.out.println("---------------------------------------------");
+                System.out.println("iteration: " + iteration++);
+                System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + globalScore);
+                discriminator.trainDiscriminatorWithFakeImage(generatedImage);
+                generator.trainSuccessfulFake(generatedImage);
+            }
+            else {
+                generator.trainGeneratorWithTrueImage(mnistData, digit);
+            }
+            generateImageOrTakeImage = false;
+        }
+        else {
+            discriminator.trainDiscriminatorWithTrueImage(mnistData, digit);
+            generateImageOrTakeImage = true;
+        }
+    }
+
+
+
 
 }
