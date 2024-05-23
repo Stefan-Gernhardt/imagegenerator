@@ -24,9 +24,8 @@ public class WindowUI {
 		frame = new JFrame(title);
 		this.game = game;
 
-
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setResizable(true); //!!
+		frame.setResizable(true);
 		frame.add(game); // Game inherits from Canvas, a Component object, so it can be put in a JFrame
 		frame.pack();
 		frame.setLocationRelativeTo(null); // ghetto way of centering the window

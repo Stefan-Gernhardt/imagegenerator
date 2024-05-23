@@ -8,6 +8,8 @@ public class Main {
 		// new GenerateImage().generateSimple();
 		// new GenerateImage().generateWithGeneticAlgo();
 		// new GenerateImage().generateWithDiscriminatorAndGenerator();
-		new ContainerGenerateImages().run();
+		// new ContainerGenerateImages().run();
+		new ContainerGenerateImagesDenoising().run();
 	}
+
 }

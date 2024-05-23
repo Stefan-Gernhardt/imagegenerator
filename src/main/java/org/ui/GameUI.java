@@ -1,6 +1,7 @@
 package org.ui;
 
 
+import main.ContainerGenerateImagesDenoising;
 import main.GenerateImage;
 import org.deeplearning.MnistData;
 
@@ -22,6 +23,8 @@ public class GameUI extends Canvas  {
 	public final static int factor = 4;
 	public final static int rows = 2;
 	public final static int cols = 5;
+	// public final static int rows = 1;
+	// public final static int cols = 1;
 
 	public final static int Running = 1;
 	public final static int Stopped_We_have_a_winner = 2;
@@ -99,7 +102,36 @@ public class GameUI extends Canvas  {
 
 		g.dispose();
 		buffer.show();
+	}
 
+
+	public void draw(GenerateImage generateImage, int i) {
+		// Initialize drawing tools first before drawing
+
+		BufferStrategy buffer = this.getBufferStrategy(); // extract buffer so we can use them
+		// a buffer is basically like a blank canvas we can draw on
+
+		if (buffer == null) { // if it does not exist, we can't draw! So create it please
+			this.createBufferStrategy(3); // Creating a Triple Buffer
+			/*
+			 * triple buffering basically means we have 3 different canvases this is used to
+			 * improve performance but the drawbacks are the more buffers, the more memory
+			 * needed so if you get like a memory error or something, put 2 instead of 3.
+			 *
+			 * BufferStrategy:
+			 * https://docs.oracle.com/javase/7/docs/api/java/awt/image/BufferStrategy.html
+			 */
+
+			return;
+		}
+
+		Graphics g = buffer.getDrawGraphics(); // extract drawing tool from the buffers
+
+		drawBackground(g);
+		drawCoordImage(g, generateImage, i);
+
+		g.dispose();
+		buffer.show();
 	}
 
 
@@ -118,7 +150,6 @@ public class GameUI extends Canvas  {
 
 		g.dispose();
 		buffer.show();
-
 	}
 
 
@@ -173,6 +204,25 @@ public class GameUI extends Canvas  {
 						g.fillRect(imageCol * w + col * wSize, imageRow * h + row * hSize, wSize, hSize);
 					}
 				}
+			}
+		}
+	}
+	public void drawCoordImage(Graphics g, GenerateImage generatedImage, int i) {
+		int h = geth() / rows;
+		int w = getw() / cols;
+
+		int hSize = h / IMG_SIZE;
+		int wSize = w / IMG_SIZE;
+
+		int imageRow = i / cols;
+		int imageCol = i % cols;
+
+		for (int row = 0; row < IMG_SIZE; row++) {
+			for (int col = 0; col < IMG_SIZE; col++) {
+				float grayValue = (float) generatedImage.getGrayValue(row, col);
+				int colorNumber = Color.HSBtoRGB(0, 0, grayValue);
+				g.setColor(new Color(colorNumber));
+				g.fillRect(imageCol * w + col * wSize, imageRow * h + row * hSize, wSize, hSize);
 			}
 		}
 	}

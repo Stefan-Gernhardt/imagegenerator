@@ -4,9 +4,10 @@ import org.ui.GameUI;
 import org.ui.UI;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ContainerGenerateImages {
-    private ArrayList generatedImages = null;
+    private ArrayList<GenerateImage> generatedImages = null;
     private UI ui = null;
 
     public ContainerGenerateImages() {
@@ -24,4 +25,6 @@ public class ContainerGenerateImages {
     public void run() {
         ui.mainLoop(generatedImages);
     }
+
 }
+

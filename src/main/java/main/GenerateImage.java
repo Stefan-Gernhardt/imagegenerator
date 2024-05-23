@@ -2,6 +2,7 @@ package main;
 
 import org.deeplearning.Discriminator;
 import org.deeplearning.Generator;
+import org.deeplearning.GeneratorDenoising;
 import org.deeplearning.MnistData;
 import org.deeplearning.MnistSimple;
 import org.deeplearning.Util;
@@ -25,9 +26,10 @@ public class GenerateImage {
 
     private MnistSimple mnistSimple196 = null;
 
-    Generator generator = null;
+    private Generator generator = null;
+    private GeneratorDenoising generatorDenoising = null;
 
-    Discriminator discriminator = null;
+    private Discriminator discriminator = null;
 
     public final static int N_GEN = 10;
 
@@ -72,6 +74,23 @@ public class GenerateImage {
         mnistSimple.createNet();
         mnistSimple.loadModel();
     }
+
+    public void setUpGenerateWithDenoising(GeneratorDenoising generatorDenoising, MnistSimple mnistSimple, MnistData mnistData) {
+        mode = 4;
+
+        this.generatorDenoising = generatorDenoising;
+        this.mnistSimple = mnistSimple;
+        this.mnistData = mnistData;
+
+        geneticINDArray = Nd4j.zeros(N_GEN, Generator.RANDOM_SIZE);
+
+        geneticScore = new double[N_GEN];
+
+        for(int i=0; i<N_GEN; i++) {
+            Util.copyOneDimIndArrayToTwoDimIndArray(generatorDenoising.getRandomInput().generateRandomizedInput(), geneticINDArray, i);
+        }
+    }
+
     private void setUpGenerateSimple() {
         mode = 1;
 
@@ -212,6 +231,11 @@ public class GenerateImage {
         }
         if (mode == 3) {
             findBetterImageGeneticAlgo();
+            return;
+        }
+
+        if (mode == 4) {
+            findBetterImageDenoisingAlgo();
             return;
         }
 
@@ -630,79 +654,6 @@ public class GenerateImage {
 
                 generator.manipulateWeightsToRandom();
 
-                /*
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                if(discriminator.isTheGeneratedImageGoodEnough(generatedImage, 0.5)) {
-                    globalScore = score;
-                    System.out.println("iteration true: " + iteration++);
-                    System.out.println("gradient of generated image discriminator: " + discriminator.askModelGetGradient(generatedImage) + "  MnistSimple: " + score);
-                    discriminator.trainDiscriminatorWithFakeImage(generatedImage);
-                    generator.trainSuccessfulFake(generatedImage);
-                    imageINDArray = generatedImage;
-                    generateImageOrTakeImage = false;
-                }
-
-                for(int l=0; l<10; l++) {
-                    generator.manipulateWeightsToRandom();
-                    generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                    System.out.println("generatedImage: " + generatedImage);
-                    System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-                }
-
-
-                generator.manipulateWeightsToRandom();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToRandom();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToZero();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to zero  : " + discriminator.askModelGetGradient(generatedImage));
-
-
-                generator.manipulateWeightsToOne();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToZero();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToOne();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to one   : " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToRandom();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToRandom();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                generator.manipulateWeightsToRandom();
-                generatedImage = generator.generateImage(generator.getRandomInputLayer());
-                System.out.println("generatedImage: " + generatedImage);
-                System.out.println("manipulate weights to random: " + discriminator.askModelGetGradient(generatedImage));
-
-                // generator.displayWeights();
-
-                System.out.println();
-                */
             }
         }
         else {
@@ -739,7 +690,8 @@ public class GenerateImage {
         }
     }
 
-
-
-
+    void findBetterImageDenoisingAlgo() {
+        imageINDArray = generatorDenoising.generateImage();
+        generatorDenoising.trainGeneratorWithRandomTrueImage(mnistData, digit);
+    }
 }

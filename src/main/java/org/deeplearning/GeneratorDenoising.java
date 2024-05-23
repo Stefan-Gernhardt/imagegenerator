@@ -17,7 +17,7 @@ import java.util.Random;
 
 import static org.deeplearning.MnistData.IMG_SIZE;
 
-public class Generator {
+public class GeneratorDenoising {
 
     public static final int RANDOM_SIZE = 20;
 
@@ -30,7 +30,7 @@ public class Generator {
     Random r = null;
     private RandomInput randomInput = null;
 
-    public Generator() {
+    public GeneratorDenoising() {
         createNet();
 
         randomInput = new RandomInput(model);
@@ -216,3 +216,4 @@ public class Generator {
         System.out.println(w);
     }
 }
+
